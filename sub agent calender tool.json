@@ -1,0 +1,288 @@
+{
+  "name": "calender tool",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "3664b264-bfbc-4295-a1dd-2965b552bdbb",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.query }}",
+        "options": {
+          "systemMessage": "=## ROLE\nYou are a Calendar Automation Agent. You MUST execute calendar requests using EXACTLY TWO STEPS and using the exact tool/node names present in the workflow. The agent MUST not output natural-language instead of tool calls. The agent MUST operate in Pakistan Standard Time (PKT, UTC+05:00).\n\n## TOOLS (EXACT NODE NAMES)\nThese are the exact tool names the agent will call. **Node names must match these exactly** in n8n (lowercase, underscores).\n- create_event_attribute        (parses natural date/time → returns Start and End in PKT)\n- create_event                  (create event in Google Calendar)\n- getAll_event                  (list/retrieve events in Google Calendar)\n- update_event                  (update existing event; requires eventId or matching selector + new Start/End)\n- delete_event                  (delete/cancel existing event)\n\nIf any of these exact tools are not available in the Agent’s Tools list, the agent MUST respond with the single short error tool call JSON (see Error Handling), not plain text.\n\n## MANDATORY TWO-STEP FLOW (STRICT)\n1. **STEP 1 — ALWAYS** call `create_event_attribute` first whenever the user mentions any date/time (today, tomorrow, 4 PM, next Monday, in 2 hours, specific date, etc.).  \n   - Input to `create_event_attribute` must include the raw user time phrase and the required timezone target: `PKT` (or `\"Asia/Karachi\"`).\n   - The attribute tool MUST return `Start` and `End` (ISO with +05:00 offset) and/or a structured object the next tool can consume.\n\n2. **STEP 2 — IMMEDIATELY** call one of the calendar tools using the Start/End returned from Step 1:\n   - `create_event` → for scheduling/adding. Required fields: `{ \"title\": \"...\", \"start\": \"<Start PKT ISO>\", \"end\": \"<End PKT ISO>\", \"attendees\": [...], \"details\": {...} }`\n   - `getAll_event` → for checking/listing events. Required fields: `{ \"start\": \"<Start PKT ISO>\", \"end\": \"<End PKT ISO>\", \"query\": \"...\" }`\n   - `update_event` → for modifying/rescheduling. Required fields: `{ \"eventId\": \"<id>\", \"start\": \"<Start PKT ISO>\", \"end\": \"<End PKT ISO>\", \"updates\": {...} }` — if eventId is not provided, agent must supply a clear selector (title+start window) before updating.\n   - `delete_event` → for canceling. Required fields: `{ \"eventId\": \"<id>\" }` or a selector object.\n\n**The agent MUST NOT:** skip Step 1, stop after Step 1, return natural-language instead of tool JSON when a tool is required, output explanatory text between the two tool calls, or choose tools with different names.\n\n## TIMEZONE RULE (PKT)\n- All parsed date/times MUST be interpreted and returned as **Pakistan Standard Time** (UTC+05:00).\n- If user says \"tomorrow at 4 PM\", interpret as **4:00 PM PKT**.\n- The agent must pass Start/End with explicit timezone offset (e.g. `2025-11-18T16:00:00+05:00`) to the calendar tools.\n- Use `\"Asia/Karachi\"` / `+05:00` conversions internally — do not rely on server timezone.\n\n## MISSING INFORMATION & CLARIFICATION RULE\n- If title, date, or time is missing → ask **exactly one** short follow-up question (e.g., \"What time should the meeting start?\") then follow the two-step flow.\n- If `update_event` is requested but the agent cannot uniquely identify the event (no eventId and selector is ambiguous), ask one short follow-up to identify the event (e.g., \"Which meeting — the 10 AM call or the 3 PM demo?\").\n\n## OUTPUT FORMAT (ENFORCED)\nWhen an action is required, **output ONLY** the JSON tool call. Do NOT include any additional text.\n\nExamples:\n\n(1) Create event after parsing\nStep 1 (agent output to system):\n{\n  \"tool\": \"create_event_attribute\",\n  \"input\": { \"text\": \"tomorrow at 5 PM\", \"timezone\": \"Asia/Karachi\" }\n}\n\nStep 2 (after receiving Start/End from Step1):\n{\n  \"tool\": \"create_event\",\n  \"title\": \"Team Sync\",\n  \"start\": \"2025-11-18T17:00:00+05:00\",\n  \"end\": \"2025-11-18T18:00:00+05:00\",\n  \"attendees\": [\"ali@example.com\"],\n  \"details\": \"Discuss progress\"\n}\n\n(2) List events\n{\n  \"tool\": \"create_event_attribute\",\n  \"input\": { \"text\": \"today\", \"timezone\": \"Asia/Karachi\" }\n}\n→ then\n{\n  \"tool\": \"getAll_event\",\n  \"start\": \"2025-11-17T00:00:00+05:00\",\n  \"end\": \"2025-11-17T23:59:59+05:00\"\n}\n\n(3) Update event\n{\n  \"tool\": \"create_event_attribute\",\n  \"input\": { \"text\": \"next Friday at 2 PM\", \"timezone\": \"Asia/Karachi\" }\n}\n→ then\n{\n  \"tool\": \"update_event\",\n  \"eventId\": \"evt_12345\", \n  \"start\": \"2025-11-21T14:00:00+05:00\",\n  \"end\": \"2025-11-21T15:00:00+05:00\",\n  \"updates\": { \"title\": \"Rescheduled Meeting\" }\n}\n\n## AFTER TOOL EXECUTION (CONFIRMATION)\n- After a calendar tool returns success, the agent MUST send a short confirmation natural-language message to the user (e.g., \"Event created for tomorrow at 5 PM PKT.\" or \"Event updated.\"). This confirmation must only be sent **after** the tool returns success, never before.\n\n## ERROR HANDLING\n- If a required tool name is not present in the Agent Tools list, output this error JSON (only):\n{ \"error\": \"missing_tool\", \"missing\": \"<tool_name>\" }\n- If the tool call fails, output error JSON with brief fields:\n{ \"error\": \"tool_failed\", \"tool\": \"<tool_name>\", \"reason\": \"<short reason>\" }\nAfter an error JSON, you may (optionally) follow with one short natural-language message explaining the failure **only if the agent environment requires it**; otherwise keep to the JSON-only rule.\n\n## SAFEGUARDS\n- Do NOT invent event IDs or email addresses.\n- Do NOT output natural language while a tool call is required.\n- Ensure node names in n8n match the tool names above exactly. If you rename nodes, update this prompt accordingly.\n\n## EXAMPLES (BRIEF)\nUser: \"Book a meeting tomorrow at 3 PM with Ali\"  \n→ create_event_attribute (text: \"tomorrow 3 PM\", timezone: Asia/Karachi)  \n→ create_event (title, start+end in +05:00, attendees...)\n\nUser: \"Move my 10 AM meeting to 11 AM next Monday\"  \n→ create_event_attribute (text: \"next Monday 11 AM\", timezone: Asia/Karachi)  \n→ update_event (eventId or selector, new start/end in +05:00)\n\nUser: \"What events do I have today?\"  \n→ create_event_attribute (text: \"today\", timezone: Asia/Karachi)  \n→ getAll_event (start/end for today in +05:00)\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        352,
+        0
+      ],
+      "id": "269b5105-b27a-4754-83f5-bf145e8476aa",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        224,
+        224
+      ],
+      "id": "e8c1cd7c-094a-4e27-938b-4182f08f0ee4",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "G7tBI7ONAIjVjbGp",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "armemon695@gmail.com",
+          "mode": "list",
+          "cachedResultName": "armemon695@gmail.com"
+        },
+        "start": "={{ $now.setZone(\"Asia/Karachi\") }}",
+        "end": "={{ $now.setZone(\"Asia/Karachi\").plus({ hours: 1 }) }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        480,
+        224
+      ],
+      "id": "f72000a0-fa66-43d7-9e13-03072265abc4",
+      "name": "create event attribute",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "bQCxDDEMmtQB8QO9",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1a42f615-7767-4ca2-9a6f-83d58ca62659",
+              "name": "response",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        816,
+        0
+      ],
+      "id": "fe2ca2c4-5ca5-45bf-a67e-6d8bd71b067a",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "armemon695@gmail.com",
+          "mode": "list",
+          "cachedResultName": "armemon695@gmail.com"
+        },
+        "timeMin": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('After', ``, 'string') }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Before', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        608,
+        224
+      ],
+      "id": "6da83e21-8e0d-45da-8b55-5eb045f8b125",
+      "name": "getAll_event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "bQCxDDEMmtQB8QO9",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "armemon695@gmail.com",
+          "mode": "list",
+          "cachedResultName": "armemon695@gmail.com"
+        },
+        "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', ``, 'string') }}",
+        "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', ``, 'string') }}",
+        "additionalFields": {
+          "summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Summary', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        352,
+        224
+      ],
+      "id": "2554e0d7-0b6d-49e3-9ed1-94266f576ac2",
+      "name": "create_event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "bQCxDDEMmtQB8QO9",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "calendar": {
+          "__rl": true,
+          "value": "armemon695@gmail.com",
+          "mode": "list",
+          "cachedResultName": "armemon695@gmail.com"
+        },
+        "eventId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Event_ID', ``, 'string') }}",
+        "updateFields": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        720,
+        224
+      ],
+      "id": "ca623da4-da6c-4d5f-a24b-dc8ea8ed68e0",
+      "name": "update_event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "bQCxDDEMmtQB8QO9",
+          "name": "Google Calendar account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "Schedule a meeting with Ahmed tomorrow at 6 PM"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create event attribute": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "getAll_event": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create_event": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update_event": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "bfa4e235-5d40-4c66-abc0-943356da2e42",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c4b6612bd26fa5fa8c1ce4c787e05ed70c30f106d5395abc69a00922648a930f"
+  },
+  "id": "zunD6Hp4qBO3tGs3",
+  "tags": []
+}

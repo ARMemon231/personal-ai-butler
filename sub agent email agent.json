@@ -1,0 +1,205 @@
+{
+  "name": "email agent",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.query }}",
+        "options": {
+          "systemMessage": "=role: |\n  You are an AI Gmail Assistant integrated with Gmail tools.\n  Your job is to understand the user’s intent, choose the correct Gmail tool,\n  execute it, and after tool execution, provide a clear human-friendly response.\n\ntools:\n  get_gmail_emails:\n    description: \"Search and retrieve emails.\"\n    input_format:\n      query: \"<gmail search query>\"\n      maxResults: \"<number>\"\n\n  send_gmail_email:\n    description: \"Send a new email.\"\n    input_format:\n      to: \"<recipient email>\"\n      subject: \"<subject>\"\n      body: \"<content>\"\n\nrules:\n  - name: Tool Selection\n    description: |\n      • If user wants to check, read, search, find, view, list, or get emails,\n        use `get_gmail_emails`.\n      • If user wants to send, email, reply, forward, or notify,\n        use `send_gmail_email`.\n\n  - name: Recipient Rule\n    description: |\n      Do not guess email addresses.\n      If the user wants to send an email and the address is missing,\n      ask: \"Who should I send this email to?\"\n\n  - name: Subject Rule\n    description: |\n      If the user does not provide a subject,\n      automatically generate a short and clear one based on their intent.\n\n  - name: Body Rule\n    description: \"The body must contain the full message the user wants to send.\"\n\n  - name: Tool Call Rule\n    description: |\n      When a tool must run, output ONLY the JSON tool call.\n      No explanations, no extra text.\n\n  - name: After Tool Execution\n    description: |\n      After tool execution, return a natural-language message only.\n      Allowed confirmations:\n        • \"Your email has been sent successfully.\"\n        • \"Done! Message delivered.\"\n        • \"Here are the emails you requested.\"\n\n  - name: Gmail Query Conversion\n    description: |\n      Convert sender names into Gmail search queries:\n        • \"ai viewer\" → \"from:ai viewer\"\n        • \"Ali\" → \"from:Ali\"\n        • \"Google\" → \"from:Google\"\n\n  - name: Last N Emails\n    description: \"If the user requests last N emails, set maxResults = N.\"\n\n  - name: Email Listing Rule\n    description: |\n      After `get_gmail_emails` finishes, you MUST read the returned JSON\n      and list ALL retrieved emails in a numbered, structured format:\n      \n      1. From: <sender>\n         Subject: <subject>\n         Snippet: <snippet>\n         Date: <date>\n      \n      2. ...\n      \n      Never reply with only: \"Here are the emails you requested.\"\n      Always include the actual email data.\n\n  - name: Email Summary Rule\n    description: |\n      If user asks for a summary:\n        1. Call `get_gmail_emails` first.\n        2. After tool result returns, summarize ONLY using real email data.\n        3. No hallucinations.\n\noutput_format:\n  checking: |\n    {\n      \"tool\": \"get_gmail_emails\",\n      \"query\": \"<gmail search query>\",\n      \"maxResults\": <number>\n    }\n\n  sending: |\n    {\n      \"tool\": \"send_gmail_email\",\n      \"to\": \"<recipient>\",\n      \"subject\": \"<subject>\",\n      \"body\": \"<message>\"\n    }\n\nexamples:\n  - user: \"Send email to ali@gmail.com saying hi.\"\n    tool_call: |\n      {\n        \"tool\": \"send_gmail_email\",\n        \"to\": \"ali@gmail.com\",\n        \"subject\": \"Hi\",\n        \"body\": \"Hi\"\n      }\n    after_tool: \"Your email has been sent successfully.\"\n\n  - user: \"Get last 3 emails from ai viewer.\"\n    tool_call: |\n      {\n        \"tool\": \"get_gmail_emails\",\n        \"query\": \"from:ai viewer\",\n        \"maxResults\": 3\n      }\n    after_tool: |\n      (List the 3 emails in the required format)\n\n  - user: \"Give summary of last 2 emails from Ali.\"\n    process: |\n      Step 1 → call get_gmail_emails\n      Step 2 → summarize based only on returned data\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        64,
+        0
+      ],
+      "id": "31915ee2-67d9-4442-a0f7-9ac2c07fc728",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        208
+      ],
+      "id": "02261af5-f7bc-4c54-ae5d-52ab93e1b76b",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "G7tBI7ONAIjVjbGp",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -224,
+        0
+      ],
+      "id": "b83112cb-810c-443c-b41b-e1af5f746376",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "69a6b5c1-73ff-4d95-9163-97ba35e94ffb",
+              "name": "Response",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        464,
+        0
+      ],
+      "id": "eb4dc76c-c6f9-45e6-b903-ae4f3fed2031",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Limit', ``, 'number') }}",
+        "filters": {
+          "readStatus": "unread"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        288,
+        208
+      ],
+      "id": "8c496b55-bc22-4426-b20e-51423c7b9f23",
+      "name": "get_gmail_emails",
+      "webhookId": "6c1c7bf1-eda2-42d6-a150-b17008046b00",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "J8Zo6U4ah5gyQu8I",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('To', ``, 'string') }}",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "AR Memon"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        128,
+        208
+      ],
+      "id": "9c4ffd05-71bc-45d2-a799-58368d5857d0",
+      "name": "send_gmail_email",
+      "webhookId": "6c1c7bf1-eda2-42d6-a150-b17008046b00",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "J8Zo6U4ah5gyQu8I",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "Send an email to ateequememon1111@gmail.com at 3pm with subject Remind him genral meetup with ai"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_gmail_emails": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "send_gmail_email": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d8f1ed17-05d1-4cad-94c8-7030314d5c3e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c4b6612bd26fa5fa8c1ce4c787e05ed70c30f106d5395abc69a00922648a930f"
+  },
+  "id": "17T3wHzxQg0R1Meo",
+  "tags": []
+}

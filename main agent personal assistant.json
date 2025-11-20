@@ -1,0 +1,759 @@
+{
+  "name": "personal assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "=## ROLE\nYou are an intelligent WhatsApp personal assistant.\nYour job is to understand the user's intent and trigger the correct tool:\n- calenderagent  → Google Calendar actions  \n- emailagent     → Gmail actions  \n- sheet          → Google Sheets actions  \n\nWhen a tool is required → output ONLY the JSON tool call.  \nWhen no tool is needed → reply naturally.\n\n------------------------------------------------------------\n## GLOBAL RULES\n------------------------------------------------------------\n1. Identify intent FIRST (calendar, email, sheet, or general chat).\n2. When a tool is required → NO explanations, NO extra text.\n3. Tool call format must always be:\n\n{\n  \"tool\": \"<tool_name>\",\n  \"action\": \"<action_name>\",\n  \"details\": { ... }\n}\n\n4. After tool execution → let the tool node respond (not this agent).\n\n------------------------------------------------------------\n## EMAIL NAME RESOLUTION (MANDATORY)\n------------------------------------------------------------\nIf user says:\n- “Send email to NAME…”\n- “Email NAME…”\n- “Tell NAME…”\n\nThen:\n\n1. FIRST call `sheet` to search for NAME.\n2. If name exists:\n     → Use the returned email in the next `emailagent` call.\n3. If name is not found:\n     → Ask user: “I couldn't find that name. Please provide the email address.”\n\nThis ALWAYS happens before triggering emailagent.\n\n------------------------------------------------------------\n## TOOL SELECTION\n------------------------------------------------------------\n\n### 📅 Use calenderagent when user mentions:\n- meeting, schedule, appointment\n- reminder, event, reschedule, cancel event\n- “add to calendar”\n- “what’s on my calendar?”\n\n### 📧 Use emailagent when user mentions:\n- send email, email, forward, reply\n- “email him/her”\n- “tell NAME…”\n(But run sheet lookup FIRST.)\n\n### 📊 Use sheet when user mentions:\n- lookup name, find contact\n- check data, update row, add row, delete row\n- “get email of NAME”\n\n### 🗨 If none of the above → respond like normal WhatsApp chat.\n\n------------------------------------------------------------\n## EXAMPLES\n------------------------------------------------------------\n\n# Send email with name lookup\nUser: “Email Ali about the meeting.”\n→ Tool calls:\n1. sheet (search Ali)\n2. emailagent (send email using sheet result)\n\n# Calendar scheduling\nUser: “Schedule a meeting on Friday at 4 PM with Ahmed.”\n→ Use calenderagent\n\n# Sheets lookup\nUser: “Get the email of Sarah.”\n→ Use sheet\n\n# Chat mode\nUser: “How are you?”\n→ Natural reply\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -160,
+        176
+      ],
+      "id": "e14deea3-c0f6-4c4e-a522-67fe353ea94b",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        448
+      ],
+      "id": "f4cfd0a2-7579-44c5-a9ca-eaf02b0b77ce",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "G7tBI7ONAIjVjbGp",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "call this tool to take action in eamil",
+        "workflowId": {
+          "__rl": true,
+          "value": "17T3wHzxQg0R1Meo",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/17T3wHzxQg0R1Meo",
+          "cachedResultName": "email agent"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        32,
+        448
+      ],
+      "id": "a437bdf0-c8f4-4ea9-aa50-49014271cbb1",
+      "name": "Call 'email agent'"
+    },
+    {
+      "parameters": {
+        "description": "call this tool to take action in calender",
+        "workflowId": {
+          "__rl": true,
+          "value": "zunD6Hp4qBO3tGs3",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/zunD6Hp4qBO3tGs3",
+          "cachedResultName": "calender tool"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        160,
+        448
+      ],
+      "id": "c628374b-caaf-413e-acb1-76e14b819dab",
+      "name": "calenderagent"
+    },
+    {
+      "parameters": {
+        "description": "call this tool to search internet answer of user's question",
+        "workflowId": {
+          "__rl": true,
+          "value": "ZhI5qEKMSnSyURyQ",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ZhI5qEKMSnSyURyQ",
+          "cachedResultName": "reasearch agent"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        288,
+        448
+      ],
+      "id": "ac9cffd6-740e-4ec6-a947-c4f61932a1e7",
+      "name": "Call 'reasearch agent'"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.messages[0].text.body }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "6ea1cfc0-9232-4e0b-9caa-a97f7c256ccc"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "badc36c2-c7ac-4d14-a5b6-4be9cb9a316d",
+                    "leftValue": "={{ $json.messages[0].audio.sha256 }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "voice"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -1472,
+        224
+      ],
+      "id": "6e9c9060-9a64-4a1b-ae7f-a37a2e816327",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "resource": "media",
+        "operation": "mediaUrlGet",
+        "mediaGetId": "={{ $json.messages[0].audio.id }}"
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -1248,
+        128
+      ],
+      "id": "1c30dfea-fd7c-4a22-b308-1203ccf06105",
+      "name": "Download media",
+      "webhookId": "fc495520-577c-4209-b413-ec01879d4c58",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "ln0BnmwtDrxeIXAY",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash-lite",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash-lite"
+        },
+        "inputType": "binary",
+        "simplify": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        128
+      ],
+      "id": "2e5a693a-8310-4c30-93cc-3bc416c872f8",
+      "name": "Transcribe a recording",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "G7tBI7ONAIjVjbGp",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1024,
+        128
+      ],
+      "id": "be81977d-d817-4633-af2a-3f8484da60dc",
+      "name": "HTTP Request",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "ln0BnmwtDrxeIXAY",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4fd9a734-3282-4ff2-99f4-375434adfaa2",
+              "name": "text",
+              "value": "={{ $json.messages[0].text.body }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -576,
+        320
+      ],
+      "id": "9ae46370-a5a7-477e-bd06-c08abbba8953",
+      "name": "set text"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "77f0349e-a211-42ce-8cdb-ea0fa5ed2ef4",
+              "name": "text",
+              "value": "={{ $json.candidates[0].content.parts[0].text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -576,
+        128
+      ],
+      "id": "eb7e4cff-5b46-40b0-9d31-7c5d98f5176b",
+      "name": "voice to text"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "765766989952657",
+        "recipientPhoneNumber": "={{ $('WhatsApp Trigger1').item.json.contacts[0].wa_id }}",
+        "textBody": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        560,
+        64
+      ],
+      "id": "7d54249d-e266-4b08-a913-58ba9b62f9e7",
+      "name": "Send message1",
+      "webhookId": "55c053f5-57bf-4035-8997-753bb83faf3a",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "ln0BnmwtDrxeIXAY",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainSummarization",
+      "typeVersion": 2.1,
+      "position": [
+        496,
+        368
+      ],
+      "id": "dd656a23-d268-429f-b48b-fb9146c8ac6f",
+      "name": "Summarization Chain"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        576,
+        592
+      ],
+      "id": "d405e0cb-6206-47a9-9aec-9d5578c0018c",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "G7tBI7ONAIjVjbGp",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "speech",
+        "voice": {
+          "__rl": true,
+          "value": "ZF6FPAbjXT4488VcRRnw",
+          "mode": "list",
+          "cachedResultName": "Amelia - young and enthusiastic"
+        },
+        "text": "={{ $json.output.text }}",
+        "additionalOptions": {},
+        "requestOptions": {}
+      },
+      "type": "@elevenlabs/n8n-nodes-elevenlabs.elevenLabs",
+      "typeVersion": 1,
+      "position": [
+        848,
+        368
+      ],
+      "id": "7e36261a-5bc5-4fe5-8848-81e2949b9f87",
+      "name": "Convert text to speech",
+      "credentials": {
+        "elevenLabsApi": {
+          "id": "8IPPYf9Eubl7kqA0",
+          "name": "jayshah-gmail"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "765766989952657",
+        "recipientPhoneNumber": "={{ $('WhatsApp Trigger1').item.json.contacts[0].wa_id }}",
+        "messageType": "audio",
+        "mediaPath": "useMedian8n",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1520,
+        368
+      ],
+      "id": "5d045bb2-8a22-41dd-a222-1625c1ca9824",
+      "name": "Send message",
+      "webhookId": "f9925a0d-2983-47fb-9d1d-ed6ac65f1f43",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "ln0BnmwtDrxeIXAY",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "binaryToPropery",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        368
+      ],
+      "id": "2848544f-fbb4-4ee4-a889-82017c0f7a55",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "=data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1296,
+        368
+      ],
+      "id": "f1f87c53-b883-4a60-8bc4-8b83ec9f45e5",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1696,
+        224
+      ],
+      "id": "0c346097-4bca-4a64-8a54-b0ecffa3871f",
+      "name": "WhatsApp Trigger1",
+      "webhookId": "b9597854-f0b4-4a0b-8702-b3a866fcc631",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "8S6x7JNofYViyYpT",
+          "name": "WhatsApp OAuth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1GHZPg1VJp127lxkmyKuNd4A0ZfRtid2_TgrHrrHJVKc",
+          "mode": "list",
+          "cachedResultName": "20 recods in google sheet with name,email...",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1GHZPg1VJp127lxkmyKuNd4A0ZfRtid2_TgrHrrHJVKc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1879610567,
+          "mode": "list",
+          "cachedResultName": "20 recods in google sheet with name,email...",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1GHZPg1VJp127lxkmyKuNd4A0ZfRtid2_TgrHrrHJVKc/edit#gid=1879610567"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        -96,
+        448
+      ],
+      "id": "8231febc-81a9-494a-b286-35df6da54b65",
+      "name": "sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MKgWGszQcQSwd4Yk",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.text }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -224,
+        448
+      ],
+      "id": "edb81b3f-0024-4d63-92fd-ea6030bf4882",
+      "name": "Simple Memory"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send message1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Summarization Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'email agent'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "calenderagent": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'reasearch agent'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "set text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download media": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe a recording": {
+      "main": [
+        [
+          {
+            "node": "voice to text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Transcribe a recording",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set text": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "voice to text": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarization Chain": {
+      "main": [
+        [
+          {
+            "node": "Convert text to speech",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarization Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert text to speech": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Send message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message": {
+      "main": [
+        []
+      ]
+    },
+    "WhatsApp Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "sheet": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6506f6fb-268e-4c51-99e4-cbe16905fc5f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c4b6612bd26fa5fa8c1ce4c787e05ed70c30f106d5395abc69a00922648a930f"
+  },
+  "id": "rbTEcDyObQbZkGQ1",
+  "tags": []
+}
