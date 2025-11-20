@@ -251,13 +251,8 @@ n8n-personal-assistant/
 ├── sub agent email agent.json            # Gmail operations
 ├── sub agent calender tool.json          # Calendar management
 ├── sub agent reasearch agent.json        # Web research
-├── n8n demo.mp4                          # Demo video
 ├── n8n personal assistant demo.png       # Screenshot
-├── voiceover_script.md                   # Demo narration script
 ├── README.md                             # This file
-├── .gitignore                            # Git ignore rules
-└── LICENSE                               # MIT License
-```
 
 ---
 
@@ -584,9 +579,9 @@ Contributions are welcome! Here's how you can help:
 ## 👤 Author
 
 **Your Name**
-- GitHub:    [https://github.com/ARMemon231]
-- LinkedIn:  [https://www.linkedin.com/in/armemon225]
-- Email:     [armemon695@gmail.com]
+- GitHub:    https://github.com/ARMemon231
+- LinkedIn:  https://www.linkedin.com/in/armemon225
+- Email:     armemon695@gmail.com
 
 ---
 
