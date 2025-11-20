@@ -252,6 +252,7 @@ n8n-personal-assistant/
 ├── sub agent calender tool.json          # Calendar management
 ├── sub agent reasearch agent.json        # Web research
 ├── n8n personal assistant demo.png       # Screenshot
+├── n8n demo.mp4                          # Demo video
 ├── README.md                             # This file
 
 ---
