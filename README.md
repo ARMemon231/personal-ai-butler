@@ -3,19 +3,12 @@
 ![n8n](https://img.shields.io/badge/n8n-automation-orange)
 ![WhatsApp](https://img.shields.io/badge/WhatsApp-integrated-25D366)
 ![Google Gemini](https://img.shields.io/badge/Google-Gemini%20AI-4285F4)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 > An intelligent WhatsApp-based personal assistant powered by n8n automation and Google Gemini AI. Manage emails, calendar events, contacts, and research queries through natural language conversations.
 
 ---
 
-## 📺 Demo Video
 
-https://github.com/YOUR_USERNAME/n8n-personal-assistant/assets/n8n%20demo.mp4
-
-*Watch the full demo to see the AI assistant in action!*
-
----
 
 ## 🌟 Overview
 
@@ -97,7 +90,7 @@ This is a full-stack AI automation system that uses n8n workflows to create an i
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/n8n-personal-assistant.git
+   git clone  https://github.com/ARMemon231/personal-ai-butler.git
    cd n8n-personal-assistant
    ```
 
@@ -484,21 +477,9 @@ The main agent uses intelligent routing logic:
 
 ---
 
-## 🎨 Customization
 
-### Change AI Model
 
-Replace Google Gemini with other models:
-```json
-{
-  "type": "@n8n/n8n-nodes-langchain.lmChatOpenAI",
-  "parameters": {
-    "modelName": "gpt-4"
-  }
-}
-```
-
-### Add New Sub-Agent
+### Add New Sub-Agen
 
 1. Create new workflow in n8n
 2. Add "Execute Workflow Trigger"
@@ -598,25 +579,14 @@ Contributions are welcome! Here's how you can help:
 
 ---
 
-## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-```
-MIT License - Copyright (c) 2025
-
-Permission is hereby granted, free of charge, to any person obtaining a copy...
-```
-
----
 
 ## 👤 Author
 
 **Your Name**
-- GitHub: [@yourusername](https://github.com/yourusername)
-- LinkedIn: [Your Profile](https://linkedin.com/in/yourprofile)
-- Email: your.email@example.com
-- Portfolio: [yourwebsite.com](https://yourwebsite.com)
+- GitHub:    [https://github.com/ARMemon231]
+- LinkedIn:  [https://www.linkedin.com/in/armemon225]
+- Email:     [armemon695@gmail.com]
 
 ---
 
@@ -632,21 +602,12 @@ Special thanks to all contributors and users who have helped improve this projec
 
 ---
 
-## 📞 Support & Community
-
-### Get Help
-
-- 📧 **Email**: support@example.com
-- 💬 **Discord**: [Join our community](https://discord.gg/yourserver)
-- 🐛 **Issues**: [GitHub Issues](https://github.com/yourusername/n8n-personal-assistant/issues)
-- 📖 **Documentation**: [Wiki](https://github.com/yourusername/n8n-personal-assistant/wiki)
-- 💡 **Discussions**: [GitHub Discussions](https://github.com/yourusername/n8n-personal-assistant/discussions)
 
 ### Resources
 
 - [n8n Documentation](https://docs.n8n.io/)
 - [WhatsApp Business API Docs](https://developers.facebook.com/docs/whatsapp)
-- [Google Gemini API Guide](https://ai.google.dev/)
+- [Google Gemini API Guide](https://aistudio.google.com/)
 - [ElevenLabs Voice Library](https://elevenlabs.io/voices)
 
 ---
@@ -661,15 +622,6 @@ If you find this project helpful, please consider:
 - 💬 Providing feedback
 - 🐛 Reporting issues
 - 🔧 Contributing improvements
-
----
-
-## 📊 Project Stats
-
-![GitHub Stars](https://img.shields.io/github/stars/yourusername/n8n-personal-assistant?style=social)
-![GitHub Forks](https://img.shields.io/github/forks/yourusername/n8n-personal-assistant?style=social)
-![GitHub Issues](https://img.shields.io/github/issues/yourusername/n8n-personal-assistant)
-![GitHub Pull Requests](https://img.shields.io/github/issues-pr/yourusername/n8n-personal-assistant)
 
 ---
 
